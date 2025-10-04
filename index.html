@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>評価テンプレ（ABC記録・感情温度）｜ローカル保存 & 一覧分析（GitHub Pages安全版）</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display:none !important; } .page { box-shadow: none; margin:0; } .btn { display:none !important; } }
+  :root{ --ink:#111827; --muted:#6B7280; --line:#E5E7EB; --bg:#FFFFFF; --accent:#0EA5E9; --accent-soft:#E0F2FE; --soft:#F9FAFB; --chip:#F3F4F6; --danger:#EF4444; --ok:#059669; }
+  *{box-sizing:border-box}
+  body{margin:0; color:var(--ink); background:var(--soft); font-family:"Noto Sans JP", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;}
+  .page{width:210mm; min-height:297mm; background:#fff; margin:8mm auto; box-shadow:0 2px 12px rgba(0,0,0,.06); border-radius:10px; padding:10mm}
+  h1{font-size:18pt; margin:0 0 6mm 0}
+  h2{font-size:12pt; margin:0 0 3mm 0}
+  .row{display:flex; gap:6mm; flex-wrap:wrap; align-items:flex-end}
+  .col{flex:1}
+  .w-30{flex:0 0 30%} .w-40{flex:0 0 40%} .w-50{flex:0 0 50%}
+  .card{border:1px solid var(--line); border-radius:10px; padding:6mm; background:#fff}
+  label{font-size:10pt; color:var(--muted); display:block; margin-bottom:2mm}
+  input[type="text"],input[type="date"],input[type="time"],textarea{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:11pt; background:#fff; }
+  textarea{min-height:80px}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+  .chip{font-size:10pt; background:var(--chip); border:1px solid var(--line); padding:6px 10px; border-radius:999px; cursor:pointer; user-select:none}
+  .chip.active{outline:2px solid var(--accent); background:var(--accent-soft)}
+  .muted{color:var(--muted)} .small{font-size:9pt}
+  .btn{border:1px solid var(--line); background:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:10.5pt}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn.ok{background:var(--ok); border-color:var(--ok); color:#fff}
+  .btn.danger{border-color:var(--danger); color:#EF4444; background:#fff}
+  .btnbar{display:flex; gap:8px; flex-wrap:wrap}
+  .table{width:100%; border-collapse:collapse; font-size:10pt}
+  .table th,.table td{border:1px solid var(--line); padding:6px; vertical-align:top}
+  .table thead th{background:#F3F4F6; text-align:left}
+  .thermo-wrap{display:grid; grid-template-columns:1fr; gap:8px}
+  .thermo-bar{height:12px; border-radius:999px; background:linear-gradient(90deg,#93C5FD,#60A5FA,#34D399,#F59E0B,#EF4444);} 
+  .thermo-scale{display:flex; justify-content:space-between; font-size:10pt}
+  .inline{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .stamplist{display:flex; gap:8px; flex-wrap:wrap}
+  .stamp{border:1px dashed var(--line); border-radius:8px; padding:6px 8px; font-size:10pt; background:#fff}
+  .tagbag{display:flex; gap:6px; flex-wrap:wrap}
+  .tag{font-size:10pt; color:#047857; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:999px; padding:2px 8px}
+  .hr{height:1px; background:var(--line); margin:6mm 0}
+  /* list & kpi */
+  .list{width:100%; border-collapse:collapse; font-size:10pt}
+  .list th,.list td{border:1px solid var(--line); padding:6px; vertical-align:top}
+  .kpi{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px}
+  .kpi .card{padding:10px}
+  .kpi .num{font-size:16pt; font-weight:700}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace}
+  .toast{position:fixed; right:12px; bottom:12px; background:#111827; color:#fff; padding:10px 12px; border-radius:8px; opacity:.95}
+</style>
+</head>
+<body>
+<div class="page" id="rootPage">
+  <header class="row">
+    <div class="col">
+      <h1>評価テンプレ（ABC記録・感情温度）</h1>
+      <div class="small muted">事実（観察）と解釈（仮説）を分けて、短文で記録。</div>
+    </div>
+    <div class="w-40"><label>日付</label><input id="f-date" type="date" /></div>
+    <div class="w-30"><label>記録者</label><input id="f-recorder" type="text" placeholder="お名前 / 役割" /></div>
+    <div class="w-30"><label>対象者</label><input id="f-target" type="text" placeholder="お名前 / ID" /></div>
+  </header>
+
+  <section class="row" style="margin-top:8mm">
+    <div class="col card">
+      <h2>感情温度計（0–10）</h2>
+      <div class="thermo-wrap">
+        <div class="thermo-bar" id="thermoBar" title="クリックで値を設定"></div>
+        <div class="inline">
+          <input id="thermo" type="range" min="0" max="10" step="1" value="0" aria-label="感情温度" />
+          <span>現在値：<b id="thermoVal">0</b></span>
+          <button class="btn" id="btn-stamp">今の値を記録</button>
+          <button class="btn" id="btn-clear-stamps">記録クリア</button>
+        </div>
+        <div class="thermo-scale"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+        <div class="small muted">0–2 落ち着き / 3–4 注意 / 5–6 不快・緊張 / 7–8 高負荷 / 9–10 危機</div>
+        <div class="stamplist" id="stamplist" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="col card">
+      <h2>基本情報・状況入力</h2>
+      <label>場面 / 活動</label>
+      <input id="f-scene" type="text" placeholder="例）帰りの会／サッカー練習／外出先の店内" />
+      <div class="row" style="margin-top:6px">
+        <div class="w-50"><label>場所</label><input id="f-place" type="text" placeholder="教室A／体育館／自宅 等" /></div>
+        <div class="w-50"><label>関わった人</label><input id="f-people" type="text" placeholder="担任／コーチ／友だち2名／家族 等" /></div>
+      </div>
+      <label style="margin-top:6px">配慮・合理的配慮（事前）</label>
+      <input id="f-accom" type="text" placeholder="席配置／事前予告／選択肢提示 等" />
+      <div class="small muted" style="margin-top:4px">関連タグ（クリックでON/OFF）</div>
+      <div id="chipWrap" class="chips"></div>
+      <div id="activeTags" class="tagbag" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:8mm">
+    <div class="row" style="justify-content:space-between; align-items:center">
+      <h2 style="margin:0">ABC記録（事実ベース）</h2>
+      <div class="btnbar no-print">
+        <button class="btn" id="btn-add-row">行を追加</button>
+        <button class="btn danger" id="btn-clear-rows">全行クリア</button>
+      </div>
+    </div>
+    <table class="table" id="abcTable" aria-label="ABC記録テーブル">
+      <thead>
+      <tr>
+        <th style="width:10%">時刻</th>
+        <th style="width:18%">場面・状況（A）</th>
+        <th style="width:20%">直前のきっかけ（A 詳細）</th>
+        <th style="width:22%">行動（B：観察事実）</th>
+        <th style="width:10%">強度/時間</th>
+        <th style="width:20%">結果／周囲の対応（C）</th>
+        <th class="no-print" style="width:6%">削除</th>
+      </tr>
+      </thead>
+      <tbody id="abcBody"></tbody>
+    </table>
+  </section>
+
+  <section class="row" style="margin-top:8mm">
+    <div class="col card">
+      <h2>観察まとめ（今日のハイライト）</h2>
+      <textarea id="f-highlight" placeholder="うまくいったこと／本人が頑張った点"></textarea>
+      <label style="margin-top:6px">トリガー傾向（時間帯・人・環境音・課題種 など）</label>
+      <textarea id="f-triggers"></textarea>
+    </div>
+    <div class="col card">
+      <h2>効果のあった対応（なぜ効いた？ 仮説を一言）</h2>
+      <textarea id="f-effective" placeholder="言葉がけ／環境調整／選択肢／視覚支援 など"></textarea>
+    </div>
+    <div class="col card">
+      <h2>次に試すこと（仮説）</h2>
+      <textarea id="f-next" placeholder="例）予定変更は5分前に視覚で予告／クールダウン場所を固定する など"></textarea>
+      <div class="row" style="margin-top:6px">
+        <div class="w-50"><label>次回の観察ポイント</label><input id="f-observe" type="text" placeholder="例）声量の変化／座位時間" /></div>
+        <div class="w-50"><label>共有先</label><input id="f-share" type="text" placeholder="家庭／学校／デイ／コーチ など" /></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="hr"></div>
+
+  <!-- 保存/一覧/エクスポート -->
+  <section class="row no-print" style="align-items:center">
+    <div class="btnbar">
+      <button class="btn ok" id="btn-save-local">保存（端末に蓄積）</button>
+      <button class="btn" id="btn-export-json">エクスポート（JSON一括）</button>
+      <button class="btn" id="btn-export-csv">エクスポート（CSVサマリー）</button>
+      <button class="btn primary" id="btn-print">印刷</button>
+    </div>
+    <div class="small muted">※ ブラウザの localStorage に蓄積（複数件）。ダウンロードが封じられても蓄積は可能。</div>
+  </section>
+
+  <section class="card no-print" style="margin-top:8mm">
+    <div class="row" style="justify-content:space-between; align-items:center">
+      <h2 style="margin:0">保存一覧 & 簡易分析</h2>
+      <div class="btnbar">
+        <button class="btn" id="btn-refresh-list">一覧更新</button>
+        <button class="btn danger" id="btn-delete-selected">選択削除</button>
+      </div>
+    </div>
+    <table class="list" id="recordsTable" aria-label="保存データ一覧">
+      <thead><tr><th></th><th>ID</th><th>日付</th><th>対象者</th><th>場面</th><th>温度</th><th>ABC件数</th><th>タグ</th><th>操作</th></tr></thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+    <div class="kpi">
+      <div class="card"><div class="small muted">保存件数</div><div class="num" id="kpi-count">0</div></div>
+      <div class="card"><div class="small muted">平均温度（スタンプ平均）</div><div class="num" id="kpi-avg">-</div></div>
+      <div class="card"><div class="small muted">タグ上位</div><div id="kpi-tags" class="small"></div></div>
+    </div>
+  </section>
+
+  <footer style="margin-top:6mm" class="small muted">© AmeCan. / ABC＋感情温度テンプレ — 事実記録 → 解釈分離 → 小さな仮説検証</footer>
+</div>
+
+<dialog id="dlDialog"><div class="dlg-head">ダウンロード不可のため代替</div><div class="dlg-body"><p class="small muted">下のテキストをコピーして保存してください。</p><textarea id="dlText" class="full mono" spellcheck="false"></textarea></div><div class="dlg-foot"><button class="btn" onclick="copyDlText()">コピー</button><button class="btn primary" onclick="this.closest('dialog').close()">閉じる</button></div></dialog>
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+(function(){
+  const STORAGE_PREFIX = 'amecan_abc_records_v1';
+  const INDEX_KEY = STORAGE_PREFIX + '__index';
+
+  const TAGS = ["⚙️ 感覚","🗣️ コミュニケーション","🗓️ 予定変更","👥 対人関係","🏷️ 宿題・課題","🚌 移動","🎯 目標難易度","🔊 騒音","🕒 時間帯","🍽️ 食事前後","🏟️ 集団活動","🧠 認知負荷"];
+  const activeTagSet = new Set();
+
+  function $id(id){ return document.getElementById(id); }
+  function toast(msg){ const t=$id('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', 1400); }
+  function nowId(){ const d=new Date(); const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}`; }
+  function fmtTime(d=new Date()){ const z=n=>String(n).padStart(2,'0'); return `${z(d.getHours())}:${z(d.getMinutes())}`; }
+
+  // ========== UI 構築 ==========
+  function buildChips(){ const wrap=$id('chipWrap'); wrap.innerHTML=''; TAGS.forEach(tag=>{ const b=document.createElement('span'); b.className='chip'; b.textContent=tag; b.addEventListener('click',()=>{ activeTagSet.has(tag)? activeTagSet.delete(tag): activeTagSet.add(tag); b.classList.toggle('active'); renderActiveTags(); }); wrap.appendChild(b); }); }
+  function renderActiveTags(){ const bag=$id('activeTags'); bag.innerHTML=''; [...activeTagSet].forEach(tag=>{ const s=document.createElement('span'); s.className='tag'; s.textContent=tag; bag.appendChild(s); }); }
+  function addRow(data={}){ const tr=document.createElement('tr'); tr.innerHTML=`<td><input type="time" value="${data.time||''}"></td><td><input type="text" placeholder="場面・状況" value="${data.scene||''}"></td><td><input type="text" placeholder="直前のきっかけ" value="${data.ante||''}"></td><td><input type="text" placeholder="行動（事実）" value="${data.behav||''}"></td><td><input type="text" placeholder="例）中／3分" value="${data.intdur||''}"></td><td><input type="text" placeholder="結果／周囲の対応" value="${data.consq||''}"></td><td class="no-print"><button class="btn danger btn-del">削除</button></td>`; tr.querySelector('.btn-del')?.addEventListener('click',()=>tr.remove()); $id('abcBody').appendChild(tr); }
+
+  function collect(){ const get=id=>$id(id)?.value||''; const rows=[...$id('abcBody').querySelectorAll('tr')].map(tr=>{ const t=[...tr.querySelectorAll('td input')]; return {time:t[0]?.value||'',scene:t[1]?.value||'',ante:t[2]?.value||'',behav:t[3]?.value||'',intdur:t[4]?.value||'',consq:t[5]?.value||''};}); const stamps=[...$id('stamplist').querySelectorAll('.stamp')].map(s=>s.textContent); return { meta:{date:get('f-date'),recorder:get('f-recorder'),target:get('f-target')}, situation:{scene:get('f-scene'),place:get('f-place'),people:get('f-people'),accommodations:get('f-accom'),tags:[...activeTagSet]}, thermometer:{value:Number($id('thermo')?.value||0),stamps}, abc:rows, reflection:{highlight:get('f-highlight'),triggers:get('f-triggers'),effective:get('f-effective'),next:get('f-next'),observe:get('f-observe'),share:get('f-share')} }; }
+
+  function fill(data){ const set=(id,val)=>{ const el=$id(id); if(el) el.value=val||''; }; if(!data) return; set('f-date', data.meta?.date); set('f-recorder', data.meta?.recorder); set('f-target', data.meta?.target); set('f-scene', data.situation?.scene); set('f-place', data.situation?.place); set('f-people', data.situation?.people); set('f-accom', data.situation?.accommodations); activeTagSet.clear(); (data.situation?.tags||[]).forEach(t=>activeTagSet.add(t)); [...document.querySelectorAll('.chip')].forEach(c=> c.classList.toggle('active', activeTagSet.has(c.textContent)) ); renderActiveTags(); $id('thermo').value = data.thermometer?.value ?? 0; $id('thermo').dispatchEvent(new Event('input')); $id('stamplist').innerHTML=''; (data.thermometer?.stamps||[]).forEach(s=>{ const span=document.createElement('span'); span.className='stamp'; span.textContent=s; $id('stamplist').appendChild(span); }); $id('abcBody').innerHTML=''; (data.abc||[]).forEach(r=> addRow(r)); if((data.abc||[]).length===0) addRow(); set('f-highlight', data.reflection?.highlight); set('f-triggers', data.reflection?.triggers); set('f-effective', data.reflection?.effective); set('f-next', data.reflection?.next); set('f-observe', data.reflection?.observe); set('f-share', data.reflection?.share); }
+
+  // ========== 保存（localStorage） ==========
+  function readIndex(){ try{ return JSON.parse(localStorage.getItem(INDEX_KEY)||'[]'); }catch(_){ return []; } }
+  function writeIndex(arr){ localStorage.setItem(INDEX_KEY, JSON.stringify(arr)); }
+  function keyOf(id){ return `${STORAGE_PREFIX}:${id}`; }
+
+  function saveLocal(){ const data=collect(); const id = `${nowId()}${data.meta?.target?('_'+data.meta.target):''}`; localStorage.setItem(keyOf(id), JSON.stringify(data)); const brief = { id, date:data.meta?.date||'', target:data.meta?.target||'', scene:data.situation?.scene||'', thermo:data.thermometer?.value||0, abcCount:(data.abc||[]).length, tags:data.situation?.tags||[]}; const idx=readIndex(); idx.unshift(brief); writeIndex(idx.slice(0,500)); // 最大500件
+    toast('端末に保存しました'); refreshList(); return id; }
+
+  function loadById(id){ const txt=localStorage.getItem(keyOf(id)); if(!txt){ alert('データなし'); return; } fill(JSON.parse(txt)); toast('読み込みました'); }
+  function deleteIds(ids){ const idx=readIndex().filter(r=>!ids.includes(r.id)); writeIndex(idx); ids.forEach(id=> localStorage.removeItem(keyOf(id))); refreshList(); }
+
+  // ========== エクスポート ==========
+  function ensureLink(){ let a=document.getElementById('fallbackLink'); if(!a){ a=document.createElement('a'); a.id='fallbackLink'; a.style.display='none'; a.download=''; document.body.appendChild(a);} return a; }
+  function downloadText(name, mime, text){ try{ const blob=new Blob([text],{type:mime}); const url=URL.createObjectURL(blob); const a=ensureLink(); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 12000); return true; }catch(_){ return false; } }
+  function openDlg(text){ const dlg=$id('dlDialog'); const ta=$id('dlText'); ta.value=text; try{ dlg.showModal(); }catch(_){ dlg.setAttribute('open','open'); } ta.focus(); ta.select(); }
+  window.copyDlText = function(){ const ta=$id('dlText'); ta.select(); try{ document.execCommand('copy'); toast('コピーしました'); }catch(_){} };
+
+  function exportJSON(){ const idx=readIndex(); const arr=idx.map(r=> ({ id:r.id, ...JSON.parse(localStorage.getItem(keyOf(r.id))||'{}') })); const txt=JSON.stringify(arr,null,2); const ok=downloadText('abc_records.json','application/json',txt); if(!ok) openDlg(txt); }
+  function csvEscape(v){ if(v==null) v=''; v=String(v).replace(/\r?\n/g,'\n'); return /[",\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"': v; }
+  function exportCSV(){ const idx=readIndex(); const lines=['id,日付,対象者,場面,温度,ABC件数,タグ']; idx.forEach(r=> lines.push([r.id, r.date, csvEscape(r.target), csvEscape(r.scene), r.thermo, r.abcCount, csvEscape((r.tags||[]).join(' '))].join(',')) ); const txt='\uFEFF'+lines.join('\n'); const ok=downloadText('abc_records_summary.csv','text/csv;charset=utf-8;',txt); if(!ok) openDlg(txt); }
+
+  // ========== 一覧 & KPI ==========
+  function refreshList(){ const idx=readIndex(); const tbody=$id('recordsBody'); tbody.innerHTML=''; idx.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><input type="checkbox" class="sel" data-id="${r.id}"></td><td class="mono">${r.id}</td><td>${r.date||''}</td><td>${csvEscape(r.target||'')}</td><td>${csvEscape(r.scene||'')}</td><td>${r.thermo}</td><td>${r.abcCount}</td><td>${csvEscape((r.tags||[]).join(' '))}</td><td><button class="btn" data-load="${r.id}">読み込み</button></td>`; tbody.appendChild(tr); });
+    // KPI
+    $id('kpi-count').textContent = String(idx.length);
+    let sum=0,cnt=0; const tagCounter=new Map();
+    idx.forEach(r=>{ const txt=localStorage.getItem(keyOf(r.id)); if(!txt) return; try{ const d=JSON.parse(txt); const stamps=d.thermometer?.stamps||[]; if(stamps.length){ stamps.forEach(s=>{ const part=(s.split('→')[1]||'').trim(); const v=Number(part); if(!Number.isNaN(v)){ sum+=v; cnt++; } }); } else { sum+=Number(d.thermometer?.value||0); cnt++; } (d.situation?.tags||[]).forEach(t=> tagCounter.set(t,(tagCounter.get(t)||0)+1)); }catch(_){} });
+    $id('kpi-avg').textContent = cnt? (Math.round(sum/cnt*10)/10).toFixed(1): '-';
+    const top=[...tagCounter.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>`${t}:${c}`).join(' / ');
+    $id('kpi-tags').textContent = top || '-';
+  }
+
+  // ========== 印刷 ==========
+  function handlePrint(){ let win=null; try{ win=window.open('', '_blank'); }catch(_){ win=null; }
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(n=>n.outerHTML).join('\n');
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"/>${styles}</head><body>${$id('rootPage').outerHTML}<script>setTimeout(()=>window.print(),100);<\/script></body></html>`;
+    if(win && win.document){ win.document.open(); win.document.write(html); win.document.close(); try{ win.focus(); }catch(_){ } }
+    else { const iframe=document.createElement('iframe'); Object.assign(iframe.style,{position:'fixed',right:'0',bottom:'0',width:'0',height:'0',border:'0'}); document.body.appendChild(iframe); iframe.contentDocument.open(); iframe.contentDocument.write(html); iframe.contentDocument.close(); setTimeout(()=>{ try{ iframe.contentWindow.print(); }catch(_){ window.print(); } finally{ setTimeout(()=>iframe.remove(),800); } }, 120); }
+  }
+
+  // ========== 初期化 ==========
+  function init(){
+    // thermometer
+    $id('thermo').addEventListener('input', e=> $id('thermoVal').textContent = e.target.value );
+    $id('thermoBar').addEventListener('click', e=>{ const r=$id('thermoBar').getBoundingClientRect(); const val=Math.max(0,Math.min(10,Math.round(((e.clientX-r.left)/r.width)*10))); $id('thermo').value=val; $id('thermo').dispatchEvent(new Event('input')); });
+    $id('btn-stamp').addEventListener('click', ()=>{ const v=$id('thermo').value; const s=document.createElement('span'); s.className='stamp'; s.textContent=`${fmtTime()} → ${v}`; $id('stamplist').appendChild(s); });
+    $id('btn-clear-stamps').addEventListener('click', ()=> $id('stamplist').innerHTML='' );
+
+    // chips + rows
+    buildChips(); addRow(); addRow();
+    $id('btn-add-row').addEventListener('click', ()=> addRow({time:fmtTime()}));
+    $id('btn-clear-rows').addEventListener('click', ()=> $id('abcBody').innerHTML='' );
+
+    // buttons
+    $id('btn-save-local').addEventListener('click', saveLocal);
+    $id('btn-export-json').addEventListener('click', exportJSON);
+    $id('btn-export-csv').addEventListener('click', exportCSV);
+    $id('btn-refresh-list').addEventListener('click', refreshList);
+    $id('btn-delete-selected').addEventListener('click', ()=>{ const ids=[...document.querySelectorAll('#recordsBody .sel:checked')].map(c=>c.getAttribute('data-id')); if(!ids.length){ toast('対象が未選択'); return; } if(!confirm(ids.length+'件を削除しますか？')) return; deleteIds(ids); });
+    $id('recordsBody').addEventListener('click', e=>{ const id=e.target?.getAttribute?.('data-load'); if(id) loadById(id); });
+    $id('btn-print').addEventListener('click', handlePrint);
+
+    refreshList();
+  }
+
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init, {once:true}); } else { init(); }
+})();
+</script>
+</body>
+</html>
